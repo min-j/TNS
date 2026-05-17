@@ -1,0 +1,26 @@
+{
+  "name": "tradingnotifservice",
+  "version": "1.0.0",
+  "description": "REST API service for logging trade events from trading bots",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "dev": "ts-node src/index.ts",
+    "migrate": "ts-node src/migrate.ts"
+  },
+  "dependencies": {
+    "dotenv": "^17.4.2",
+    "express": "^4.21.0",
+    "pg": "^8.20.0",
+    "serverless-http": "^4.0.0"
+  },
+  "devDependencies": {
+    "@types/express": "^5.0.0",
+    "@types/node": "^22.0.0",
+    "@types/pg": "^8.20.0",
+    "serverless": "^4.36.1",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.6.0"
+  }
+}
