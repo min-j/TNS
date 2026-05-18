@@ -89,7 +89,11 @@ export async function notifySwingDaily(summary: SwingSummary): Promise<void> {
   }
 
   if (summary.held.length > 0) {
-    const lines = summary.held.map((p) => `${p.ticker} — $${parseFloat(String(p.entry_price)).toFixed(2)} x${p.quantity}`);
+    const lines = summary.held.map((p) => {
+      const pnl = p.pnl ?? 0;
+      const sign = pnl >= 0 ? "+" : "";
+      return `${p.ticker} — $${parseFloat(String(p.entry_price)).toFixed(2)} x${p.quantity} | ${sign}$${pnl.toFixed(2)}`;
+    });
     fields.push({ name: "Held", value: lines.join("\n"), inline: false });
   }
 

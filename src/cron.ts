@@ -6,6 +6,7 @@ import {
   getTradesByBotAndRange,
   getTradesByBotAndDate,
   getPositionsByBotAndDate,
+  summaryExists,
 } from "./store";
 import { notifyTokyoDaily, notifySwingDaily } from "./discord";
 
@@ -21,6 +22,8 @@ function tokyoSessionRange(date: string): { start: string; end: string } {
 
 export async function runTokyoSummary(date: string): Promise<boolean> {
   const range = tokyoSessionRange(date);
+  if (await summaryExists("tokyobot", date)) return true;
+
   const trades = await getTradesByBotAndRange("tokyobot", range.start, range.end);
   if (trades.length === 0) return false;
 
@@ -50,6 +53,8 @@ export async function runTokyoSummary(date: string): Promise<boolean> {
 }
 
 export async function runSwingSummary(date: string): Promise<boolean> {
+  if (await summaryExists("swingbot", date)) return true;
+
   const trades = await getTradesByBotAndDate("swingbot", date);
   const opened = await getPositionsByBotAndDate("swingbot", date, "opened");
   const closed = await getPositionsByBotAndDate("swingbot", date, "closed");
@@ -57,25 +62,21 @@ export async function runSwingSummary(date: string): Promise<boolean> {
 
   if (trades.length === 0 && held.length === 0) return false;
 
-  await generateDailySummary("swingbot", date);
-
-  let netRealizedPnl = 0;
-  for (const p of closed) {
-    netRealizedPnl += parseFloat(p.pnl ?? "0");
-  }
+  const summary = await generateDailySummary("swingbot", date);
 
   await notifySwingDaily({
     date,
     opened,
     closed,
     held,
-    netRealizedPnl,
+    netRealizedPnl: parseFloat(summary.net_pnl),
   });
 
   return true;
 }
 
 export async function handler(): Promise<void> {
+  console.log("dailySummary cron triggered");
   const today = new Date().toISOString().split("T")[0];
 
   console.log(`Running daily summary cron for ${today}`);

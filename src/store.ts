@@ -67,9 +67,26 @@ export async function getSummaries(botName: string) {
   return result.rows;
 }
 
+export async function updateOpenPosition(
+  botName: string,
+  ticker: string,
+  pnl: number
+): Promise<object | null> {
+  const botDbId = await getBotId(botName);
+  if (!botDbId) return null;
+
+  const result = await pool.query(
+    `UPDATE positions SET pnl = $1
+     WHERE bot_id = $2 AND ticker = $3 AND status = 'open'
+     RETURNING id, ticker, entry_price, quantity, pnl, status, opened_at`,
+    [pnl, botDbId, ticker]
+  );
+  return result.rows.length > 0 ? result.rows[0] : null;
+}
+
 export async function getOpenPositions() {
   const result = await pool.query(
-    `SELECT p.id, b.name AS bot_id, p.ticker, p.entry_price, p.quantity, p.status, p.opened_at
+    `SELECT p.id, b.name AS bot_id, p.ticker, p.entry_price, p.quantity, p.pnl, p.status, p.opened_at
      FROM positions p
      JOIN bots b ON b.id = p.bot_id
      WHERE p.status = 'open'
@@ -134,12 +151,23 @@ export async function getPositionsByBotAndDate(botName: string, date: string, st
       `SELECT ticker, entry_price, quantity, status, pnl, opened_at, closed_at, exit_price
        FROM positions WHERE bot_id = $1 AND status = 'open'
        ORDER BY opened_at ASC`,
-      [botDbId, date]
+      [botDbId]
     );
     return result.rows;
   }
 
   return [];
+}
+
+export async function summaryExists(botName: string, date: string): Promise<boolean> {
+  const botDbId = await getBotId(botName);
+  if (!botDbId) return false;
+
+  const result = await pool.query(
+    `SELECT 1 FROM daily_summaries WHERE bot_id = $1 AND date = $2`,
+    [botDbId, date]
+  );
+  return result.rows.length > 0;
 }
 
 export async function generateDailySummary(

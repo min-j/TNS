@@ -18,7 +18,10 @@ functions:
   dailySummary:
     handler: dist/cron.handler
     events:
-      - schedule: cron(30 14 * * ? *)
+      - schedule:
+          rate: cron(0 15 * * ? *)
+          input: {}
+    maximumRetryAttempts: 0
 
 package:
   excludeDevDependencies: true

@@ -1,6 +1,6 @@
 import { Router, Request, Response } from "express";
 import { TradeEvent } from "./types";
-import { insertTrade, getSummaries, getOpenPositions } from "./store";
+import { insertTrade, getSummaries, getOpenPositions, updateOpenPosition } from "./store";
 import { runTokyoSummary, runSwingSummary } from "./cron";
 
 const router = Router();
@@ -86,6 +86,36 @@ router.get("/positions", async (_req: Request, res: Response) => {
   try {
     const positions = await getOpenPositions();
     res.json({ count: positions.length, positions });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "Internal server error";
+    res.status(500).json({ error: message });
+  }
+});
+
+// PATCH /positions/update
+router.patch("/positions/update", async (req: Request, res: Response) => {
+  const { bot_id, ticker, pnl } = req.body;
+
+  if (typeof bot_id !== "string" || bot_id.length === 0) {
+    res.status(400).json({ error: "bot_id is required" });
+    return;
+  }
+  if (typeof ticker !== "string" || ticker.length === 0) {
+    res.status(400).json({ error: "ticker is required" });
+    return;
+  }
+  if (typeof pnl !== "number" || !Number.isFinite(pnl)) {
+    res.status(400).json({ error: "pnl must be a finite number" });
+    return;
+  }
+
+  try {
+    const position = await updateOpenPosition(bot_id, ticker, pnl);
+    if (!position) {
+      res.status(404).json({ error: "No open position found for that bot and ticker" });
+      return;
+    }
+    res.json({ message: "Position updated", position });
   } catch (err) {
     const message = err instanceof Error ? err.message : "Internal server error";
     res.status(500).json({ error: message });
